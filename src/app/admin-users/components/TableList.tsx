@@ -58,10 +58,12 @@ export default function TableList({
             message: `Are you sure you want to delete Admin User: "${adminUser.name}"`,
             btn1Text: 'Yes',
             btn2Text: 'No',
-            cb: async () => {
-                await deleteMutation.mutateAsync(adminUser.id);
+            cb: async (isConfirmed) => {
+                if (isConfirmed) {
+                    await deleteMutation.mutateAsync(adminUser.id);
 
-                toast(`Admin User: "${adminUser.name}" successfully deleted.`, 'success');
+                    toast(`Admin User: "${adminUser.name}" successfully deleted.`, 'success');
+                }
             }
         });
     }

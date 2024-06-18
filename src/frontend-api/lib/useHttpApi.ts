@@ -54,44 +54,47 @@ export default function useHttpApi(apiUrl: string) {
         return headers;
     }
 
-    async function retryOnceIfForbidden(
+    async function checkSessionExpiration(
         url: string,
-        params: Record<string, any> = {},
         headers: Record<string, string> = {},
         withUser = false,
         buildAxios: (processedHeaders: Record<string, string>) => Promise<any>
     ) {
-        const processedHeaders = processHeaders(url, headers, withUser);
-
-        try {
-            return await buildAxios(processedHeaders);
+        if (!withUser) {
+            return buildAxios(
+                processHeaders(url, headers, withUser)
+            );
         }
-        catch (ex) {
-            if (!(ex instanceof HttpRequestException)) {
-                const error = ex as AxiosError<any>;
-                if (error.response && error.response.status === 403) {
-                    if (userSession) {
-                        // We assume that the 403 is caused by an expired session
-                        // Do a refresh session
-                        const processedHeaders = processHeaders(url, headers, false);
-                        const resp: LoginResponseData = await processPromise(
-                            axios.post(
-                                `${apiUrl}/cms/auth/refresh-session`,
-                                params,
-                                { headers: processedHeaders }
-                            )
-                        ) as LoginResponseData;
-            
-                        userSession.updateSession(resp);
-                        
-                        // Do the retry
-                        const processedHeaders2 = processHeaders(url, headers, withUser);
-                        return buildAxios(processedHeaders2);
-                    }
+
+        if (userSession) {
+            if (userSession.isJwtJsonTokenExpired()) {
+                const processedHeaders = processHeaders(url, headers, false);
+
+                try {
+                    const resp = await processPromise(
+                        axios.post(
+                            `${apiUrl}/cms/auth/refresh-session`,
+                            { refreshToken: userSession.getRefreshToken() },
+                            { headers: processedHeaders }
+                        )
+                    ) as LoginResponseData;
+        
+                    userSession.updateSession(resp);
+                    
+                    return buildAxios(
+                        processHeaders(url, headers, withUser)
+                    );
+                }
+                catch (ex) {
+                    console.log(ex);
+
+                    throw ex;
                 }
             }
 
-            throw ex;
+            return buildAxios(
+                processHeaders(url, headers, withUser)
+            );
         }
     }
     
@@ -103,16 +106,13 @@ export default function useHttpApi(apiUrl: string) {
     ): Promise<any> {
         const url = `${apiUrl}${path}`;
 
-        return retryOnceIfForbidden(
+        return checkSessionExpiration(
             url,
-            params,
             headers,
             withUser,
-            (processedHeaders) => {
-                return processPromise(
-                    axios.delete(url, { headers: processedHeaders, params })
-                )
-            }
+            (processedHeaders) => processPromise(
+                axios.delete(url, { headers: processedHeaders, params })
+            )
         );
     }
     
@@ -124,16 +124,13 @@ export default function useHttpApi(apiUrl: string) {
     ): Promise<any> {
         const url = `${apiUrl}${path}`;
 
-        return retryOnceIfForbidden(
+        return checkSessionExpiration(
             url,
-            params,
             headers,
             withUser,
-            (processedHeaders) => {
-                return processPromise(
-                    axios.get(url, { headers: processedHeaders, params })
-                )
-            }
+            (processedHeaders) => processPromise(
+                axios.get(url, { headers: processedHeaders, params })
+            )
         );
     }
 
@@ -145,16 +142,13 @@ export default function useHttpApi(apiUrl: string) {
     ): Promise<any> {
         const url = `${apiUrl}${path}`;
 
-        return retryOnceIfForbidden(
+        return checkSessionExpiration(
             url,
-            data,
             headers,
             withUser,
-            (processedHeaders) => {
-                return processPromise(
-                    axios.post(url, data, { headers: processedHeaders })
-                )
-            }
+            (processedHeaders) => processPromise(
+                axios.post(url, data, { headers: processedHeaders })
+            )
         );
     }
 
@@ -166,16 +160,13 @@ export default function useHttpApi(apiUrl: string) {
     ): Promise<any> {
         const url = `${apiUrl}${path}`;
 
-        return retryOnceIfForbidden(
+        return checkSessionExpiration(
             url,
-            data,
             headers,
             withUser,
-            (processedHeaders) => {
-                return processPromise(
-                    axios.post(url, data, { headers: processedHeaders })
-                )
-            }
+            (processedHeaders) => processPromise(
+                axios.post(url, data, { headers: processedHeaders })
+            )
         );
     }
 
@@ -187,16 +178,13 @@ export default function useHttpApi(apiUrl: string) {
     ): Promise<any> {
         const url = `${apiUrl}${path}`;
 
-        return retryOnceIfForbidden(
+        return checkSessionExpiration(
             url,
-            data,
             headers,
             withUser,
-            (processedHeaders) => {
-                return processPromise(
-                    axios.put(url, data, { headers: processedHeaders })
-                )
-            }
+            (processedHeaders) => processPromise(
+                axios.put(url, data, { headers: processedHeaders })
+            )
         );
     }
 
@@ -208,16 +196,13 @@ export default function useHttpApi(apiUrl: string) {
     ): Promise<any> {
         const url = `${apiUrl}${path}`;
 
-        return retryOnceIfForbidden(
+        return checkSessionExpiration(
             url,
-            data,
             headers,
             withUser,
-            (processedHeaders) => {
-                return processPromise(
-                    axios.put(url, data, { headers: processedHeaders })
-                )
-            }
+            (processedHeaders) => processPromise(
+                axios.put(url, data, { headers: processedHeaders })
+            )
         );
     }
 

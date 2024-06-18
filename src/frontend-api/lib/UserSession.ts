@@ -8,6 +8,7 @@ export class UserSession {
     private jwtToken: string | null = null;
     private refreshToken: string | null = null;
     private user: LoggedAdminUser | null = null;
+    private jwtJsonTokenExpiry = 0;
 
     constructor() {
         if (typeof window !== 'undefined') {
@@ -30,6 +31,10 @@ export class UserSession {
         return this.user;
     }
 
+    isJwtJsonTokenExpired() {
+        return ((this.jwtJsonTokenExpiry - 60) < (new Date().getTime() / 1000));
+    }
+
     updateSession(resp: LoginResponseData) {
         window.localStorage.setItem(UserSession.USER_JWT_TOKEN, resp.accessToken);
         window.localStorage.setItem(UserSession.USER_REFRESH_TOKEN, resp.refreshToken);
@@ -50,6 +55,7 @@ export class UserSession {
 
     private readUserFromJwtToken() {
         this.user = null;
+        this.jwtJsonTokenExpiry = 0;
 
         if (this.jwtToken) {
             const [header, body] = this.jwtToken.split('.');
@@ -61,12 +67,15 @@ export class UserSession {
                     hasProp(jsonObj, 'id')
                     && hasProp(jsonObj, 'name')
                     && hasProp(jsonObj, 'permissions')
+                    && hasProp(jsonObj, 'exp')
                 ) {
                     this.user = {
                         id: jsonObj.id,
                         name: jsonObj.name,
                         permissions: jsonObj.permissions
                     };
+
+                    this.jwtJsonTokenExpiry = (jsonObj.exp as number);
                 }
             }
             catch (ex) {

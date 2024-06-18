@@ -1,9 +1,10 @@
 'use client';
 
-import CircleLoaderIcon from '@/icons/CircleLoaderIcon';
-import { QueryErrorResetBoundary } from '@tanstack/react-query';
 import { Suspense } from 'react';
+import { QueryErrorResetBoundary } from '@tanstack/react-query';
 import { ErrorBoundary } from 'react-error-boundary';
+import CircleLoaderIcon from '@/icons/CircleLoaderIcon';
+import PageErrorBoundaryFallbackRender from './PageErrorBoundaryFallbackRender';
 
 type Props = {
     children: React.ReactNode;
@@ -16,10 +17,11 @@ export default function PageSuspenseAndErrorBoundary({
         <QueryErrorResetBoundary>
             {({ reset }) => (
                 <ErrorBoundary
-                    fallbackRender={() => (
-                        <div className="mt-2 flex justify-center py-8">
-                            An unexpected error occurs. Please reload the page.
-                        </div>
+                    fallbackRender={({ error, resetErrorBoundary }) => (
+                        <PageErrorBoundaryFallbackRender
+                            error={error}
+                            resetErrorBoundary={resetErrorBoundary}
+                        />
                     )}
                     onReset={reset}
                 >
